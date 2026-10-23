@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
 
-/** A private tool: no framing, no search engines, no referrers leaking internal URLs */
 const securityHeaders = [
   {
     key: "Strict-Transport-Security",
@@ -18,7 +17,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  reactCompiler: true,
+  reactCompiler: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
