@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0e1017;
+  --foreground: #e6e8f0;
+  --card: #141722;
+  --elevated: #1a1e2c;
+  --muted: #1f2433;
+  --muted-foreground: #8e94a9;
+  --border: #272d3e;
+  --border-strong: #363d53;
+  --primary: #8b9cf0;
+  --primary-foreground: #0d1020;
+  --accent: #e2b878;
+  --highlight: #b69cf2;
+  --success: #6fcf97;
+  --destructive: #ef8a8a;
+  --ring: #8b9cf0;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-dm-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-elevated: var(--elevated);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-highlight: var(--highlight);
+  --color-success: var(--success);
+  --color-destructive: var(--destructive);
+  --color-ring: var(--ring);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
+}
