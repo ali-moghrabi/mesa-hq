@@ -134,7 +134,7 @@ export function DemoCard({
       </div>
 
       {health && monitored && today && (
-        <div className="relative grid gap-px border-t border-primary/20 bg-primary/15 sm:grid-cols-3">
+        <div className="relative grid grid-cols-[minmax(0,1fr)] gap-px border-t border-primary/20 bg-primary/15 sm:grid-cols-3">
           <Mini
             label="Website"
             on={monitored.website}

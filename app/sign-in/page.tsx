@@ -14,7 +14,7 @@ export default async function SignInPage({
   const { next } = await searchParams;
 
   return (
-    <main className="grid min-h-svh lg:grid-cols-[1.05fr_1fr]">
+    <main className="grid grid-cols-[minmax(0,1fr)] min-h-svh lg:grid-cols-[1.05fr_1fr]">
       <section className="relative hidden overflow-hidden bg-card p-12 text-foreground lg:flex lg:flex-col lg:justify-between">
         <div
           aria-hidden="true"

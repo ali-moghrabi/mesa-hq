@@ -175,6 +175,7 @@ const ordinal = (n: number) => {
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 };
 
+/** Field names in words, for the list of problems above the form */
 const FIELD_LABELS: Record<string, string> = {
   name: "Restaurant name",
   slug: "Site id",
@@ -211,6 +212,12 @@ const FIELD_LABELS: Record<string, string> = {
   notes: "Notes",
 };
 
+/* ───────────── the form ───────────── */
+
+/**
+ * Creates a client, or edits one when `client` is given (/clients/edit/<slug>): the same form,
+ * prefilled, with the site id locked and the next payment date editable.
+ */
 export function ClientForm({
   client,
 }: {
@@ -220,6 +227,7 @@ export function ClientForm({
   const [values, setValues] = useState<Values>(
     () => client?.values ?? initialValues(),
   );
+  // When editing, plan changes no longer overwrite the slug or the chosen features
   const [slugEdited, setSlugEdited] = useState(editing);
   const [featuresEdited, setFeaturesEdited] = useState(editing);
   const [sameWhatsapp, setSameWhatsapp] = useState(!client?.values.whatsapp);
@@ -232,6 +240,7 @@ export function ClientForm({
     undefined,
   );
 
+  // New answer from the server: its errors show until each field is edited again
   const [seenState, setSeenState] = useState(state);
   const [cleared, setCleared] = useState<Set<string>>(new Set());
   if (state !== seenState) {
@@ -259,6 +268,7 @@ export function ClientForm({
   };
   const payload = JSON.stringify(toPayload(payloadValues));
 
+  // Editing: nothing to save until something changed, and a warning before leaving with changes
   const [startPayload] = useState(payload);
   const dirty = !editing || payload !== startPayload;
   useEffect(() => {
@@ -268,6 +278,7 @@ export function ClientForm({
     return () => window.removeEventListener("beforeunload", warn);
   }, [editing, dirty, pending]);
 
+  /* plan changes prefill prices and features (features only until you change them yourself) */
   const pickPlan = (plan: PlanId) => {
     const p = PLANS.find((x) => x.id === plan)!;
     setValues((v) => ({
@@ -346,7 +357,7 @@ export function ClientForm({
       action={action}
       onSubmit={onSubmit}
       noValidate
-      className="mt-8 grid items-start gap-6 pb-28 lg:grid-cols-[minmax(0,1fr)_320px] lg:pb-0 xl:grid-cols-[minmax(0,1fr)_340px]"
+      className="mt-8 grid grid-cols-[minmax(0,1fr)] items-start gap-6 pb-28 lg:grid-cols-[minmax(0,1fr)_320px] lg:pb-0 xl:grid-cols-[minmax(0,1fr)_340px]"
     >
       <input type="hidden" name="payload" value={payload} />
 
@@ -388,7 +399,7 @@ export function ClientForm({
           title="Restaurant"
           text="Who the client is and where."
         >
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
             <Field
               label="Restaurant name"
               name="name"
@@ -490,7 +501,7 @@ export function ClientForm({
           title="Contact"
           text="The person you deal with, for payments and changes."
         >
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
             <Field
               label="Full name"
               name="contactName"
@@ -568,7 +579,10 @@ export function ClientForm({
           title="Plan & price"
           text="Prefilled from your pricing. Adjust for this client if needed."
         >
-          <div data-field="plan" className="grid gap-3 sm:grid-cols-2">
+          <div
+            data-field="plan"
+            className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2"
+          >
             {PLANS.map((p) => {
               const active = values.plan === p.id;
               return (
@@ -620,7 +634,7 @@ export function ClientForm({
             })}
           </div>
 
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
             <Field
               label="Billing"
               name="cycle"
@@ -695,7 +709,7 @@ export function ClientForm({
           title="Billing"
           text="When they pay and how."
         >
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
             <Field
               label="Status"
               name="status"
@@ -791,7 +805,7 @@ export function ClientForm({
           title="Website"
           text="Where their MESA site stands, and what it includes."
         >
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
             <Field
               label="Stage"
               name="stage"
@@ -849,7 +863,7 @@ export function ClientForm({
               className="sm:col-span-2"
               hint="Prefilled from the plan."
             >
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-2">
                 {FEATURES.map((f) => {
                   const on = values.features[f.id];
                   return (
@@ -896,7 +910,7 @@ export function ClientForm({
                 <span className="font-normal">(optional)</span>
               </button>
               {showHosting && (
-                <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
                   <Field
                     label="Vercel project"
                     name="vercelProject"

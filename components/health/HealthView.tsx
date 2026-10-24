@@ -143,7 +143,7 @@ export function HealthView({
       </section>
 
       {/* Alerts setup */}
-      <section className="mt-4 grid gap-3 md:grid-cols-3">
+      <section className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-3">
         <Setup
           icon={<MessageCircle />}
           title="WhatsApp alerts"
@@ -295,7 +295,7 @@ function Row({
   const ssl = daysUntil(r.health.sslExpiresAt, today);
   const domain = daysUntil(r.health.domainExpiresAt, today);
   return (
-    <li className="grid gap-3 px-5 py-4 transition-colors hover:bg-elevated/40 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center lg:gap-4">
+    <li className="grid grid-cols-[minmax(0,1fr)] gap-3 px-5 py-4 transition-colors hover:bg-elevated/40 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center lg:gap-4">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <Link

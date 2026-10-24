@@ -379,7 +379,7 @@ function Row({
     .join("");
 
   return (
-    <li className="grid gap-3 px-5 py-4 transition-colors hover:bg-elevated/50 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto] md:items-center md:gap-4">
+    <li className="grid grid-cols-[minmax(0,1fr)] gap-3 px-5 py-4 transition-colors hover:bg-elevated/50 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto] md:items-center md:gap-4">
       {/* Restaurant */}
       <div className="flex min-w-0 items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-border-strong bg-elevated text-sm font-semibold text-primary">

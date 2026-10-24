@@ -82,7 +82,6 @@ export function ClientDetailView({
   client: ClientDetail;
   today: string;
   saved?: boolean;
-  /** The Health card, rendered by the page */
   health?: ReactNode;
 }) {
   const billsNow = c.status === "active" || c.status === "trial";
@@ -113,7 +112,6 @@ export function ClientDetailView({
         </p>
       )}
 
-      {/* ───── Header ───── */}
       <header
         className={`relative mt-4 overflow-hidden rounded-3xl border bg-card p-5 sm:p-7 ${
           c.isDemo
@@ -218,6 +216,7 @@ export function ClientDetailView({
             >
               <PencilLine className="size-4" /> Edit
             </Link>
+            {/* The demo can't be deleted while it's marked as the demo */}
             {!c.isDemo && (
               <DeleteClientButton
                 name={c.name}
@@ -230,6 +229,7 @@ export function ClientDetailView({
         </div>
       </header>
 
+      {/* ───── Key numbers (not for the demo: it doesn't pay) ───── */}
       {!c.isDemo && (
         <section className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat
@@ -308,8 +308,8 @@ export function ClientDetailView({
       {health}
 
       {/* ───── Details ───── */}
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_370px]">
-        <div className="space-y-6">
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_370px]">
+        <div className="min-w-0 space-y-6">
           {/* Subscription (not for the demo) */}
           {!c.isDemo && (
             <>
@@ -320,7 +320,7 @@ export function ClientDetailView({
                   <EditLink slug={c.slug} label="Edit the subscription" />
                 }
               >
-                <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+                <dl className="grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-5 sm:grid-cols-2">
                   <Item label="Plan">
                     {planName(c.plan)}
                     {c.founding && (
@@ -392,7 +392,7 @@ export function ClientDetailView({
             title="Website"
             action={<EditLink slug={c.slug} label="Edit the website details" />}
           >
-            <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+            <dl className="grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-5 sm:grid-cols-2">
               <Item label="Domain">
                 {site ? (
                   <a
@@ -429,7 +429,7 @@ export function ClientDetailView({
             <h3 className="mt-7 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
               Included features
             </h3>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-2">
               {FEATURES.map((f) => {
                 const on = c.features[f.id];
                 return (
@@ -467,7 +467,7 @@ export function ClientDetailView({
           </section>
         </div>
 
-        <aside className="space-y-6">
+        <aside className="min-w-0 space-y-6">
           {/* Contact */}
           <Card icon={<UserRound />} title="Contact">
             <div className="flex items-center gap-3">
@@ -757,6 +757,8 @@ function Timeline({
     </ol>
   );
 }
+
+/* ───────────── pieces ───────────── */
 
 const ordinal = (n: number) => {
   const s = ["th", "st", "nd", "rd"];

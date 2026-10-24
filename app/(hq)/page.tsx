@@ -37,7 +37,7 @@ export default async function OverviewPage() {
       <p className="mt-1.5 text-muted-foreground">
         Start with your clients. Subscriptions and payments come next.
       </p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-3">
         {SECTIONS.map((section) => {
           const Icon = section.icon;
           const href = "href" in section ? section.href : undefined;
