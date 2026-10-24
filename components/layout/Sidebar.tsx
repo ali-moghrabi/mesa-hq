@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, LayoutGrid, LogOut, Store } from "lucide-react";
+import { Activity, Inbox, LayoutGrid, LogOut, Store } from "lucide-react";
 import { signOut } from "@/lib/auth/actions";
 
 const NAV = [
   { href: "/", label: "Overview", icon: LayoutGrid, exact: true },
   { href: "/clients", label: "Clients", icon: Store },
+  { href: "/onboarding", label: "Onboarding", icon: Inbox },
   { href: "/health", label: "Health", icon: Activity },
 ] as const;
 
@@ -32,7 +33,24 @@ function Logo() {
   );
 }
 
-export function Sidebar({ name, email }: { name: string; email: string }) {
+function Badge({ n }: { n?: number }) {
+  if (!n) return null;
+  return (
+    <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground tabular-nums">
+      {n > 99 ? "99+" : n}
+    </span>
+  );
+}
+
+export function Sidebar({
+  name,
+  email,
+  badges = {},
+}: {
+  name: string;
+  email: string;
+  badges?: Record<string, number>;
+}) {
   const isActive = useActive();
   const initials = (name || email)
     .split(/[\s@.]/)
@@ -63,6 +81,7 @@ export function Sidebar({ name, email }: { name: string; email: string }) {
               >
                 <Icon className={`size-4.5 ${active ? "text-primary" : ""}`} />
                 {label}
+                <Badge n={badges[href]} />
               </Link>
             );
           })}
@@ -118,6 +137,7 @@ export function Sidebar({ name, email }: { name: string; email: string }) {
               >
                 <Icon className={`size-4 ${active ? "text-primary" : ""}`} />
                 {label}
+                <Badge n={badges[href]} />
               </Link>
             );
           })}

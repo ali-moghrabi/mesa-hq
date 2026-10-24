@@ -1,11 +1,13 @@
 "use server";
 
+import { isValidObjectId } from "mongoose";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "../auth/session";
 import { connectDb } from "../db";
 import { Client } from "../models/client";
 import { HealthCheck, Incident } from "../models/health";
+import { OnboardingRequest } from "../models/onboarding";
 import { todayIn } from "./list";
 import {
   clientInputSchema,
@@ -48,7 +50,6 @@ function readForm(
       },
     };
   }
-
   const withDefaults =
     raw && typeof raw === "object"
       ? { apiUrl: "", isDemo: false, ...raw }
@@ -110,6 +111,18 @@ function fields(v: ClientInput) {
   };
 }
 
+async function linkRequest(requestId: string, slug: string) {
+  if (!isValidObjectId(requestId)) return;
+  await OnboardingRequest.updateOne(
+    { _id: requestId },
+    {
+      $set: { status: "converted", clientSlug: slug, convertedAt: new Date() },
+    },
+  );
+  revalidatePath("/onboarding");
+  revalidatePath(`/onboarding/${requestId}`);
+}
+
 async function keepOneDemo(v: ClientInput, slug: string) {
   if (v.isDemo)
     await Client.updateMany(
@@ -137,6 +150,7 @@ export async function createClient(
   try {
     await Client.create({ ...doc, slug: v.slug, createdBy: me.email });
     await keepOneDemo(v, v.slug);
+    await linkRequest(String(form.get("fromRequest") ?? ""), v.slug);
   } catch (error) {
     if ((error as { code?: number }).code === 11000) return TAKEN;
     throw error;
@@ -188,7 +202,6 @@ export async function deleteClient(
     return { message: "Type the site id exactly to confirm." };
 
   await connectDb();
-
   const removed = await Client.findOneAndDelete(
     { slug, isDemo: { $ne: true } },
     { projection: { name: 1 } },
@@ -199,7 +212,6 @@ export async function deleteClient(
         ? 'This is the MESA Demo. Untick "MESA Demo" in its edit form first.'
         : "This client was already deleted.",
     };
-
   await Promise.all([
     HealthCheck.deleteMany({ client: removed._id }),
     Incident.deleteMany({ client: removed._id }),

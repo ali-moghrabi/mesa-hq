@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readToken, SESSION_COOKIE } from "@/lib/auth/token";
 
-const PUBLIC_PATHS = ["/sign-in", "/api/cron"];
+const PUBLIC_PATHS = ["/sign-in", "/api/cron", "/api/onboarding"];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

@@ -6,11 +6,21 @@ import { saveClientNotes, type NotesState } from "@/lib/clients/actions";
 
 const MAX = 2000;
 
-export function NotesCard({ slug, notes }: { slug: string; notes: string }) {
+export function NotesCard({
+  slug,
+  notes,
+  save,
+  hint = "Only for you",
+}: {
+  slug?: string;
+  notes: string;
+  save?: (previous: NotesState, form: FormData) => Promise<NotesState>;
+  hint?: string;
+}) {
   const [text, setText] = useState(notes);
   const [saved, setSaved] = useState(notes);
   const [state, action, pending] = useActionState<NotesState, FormData>(
-    saveClientNotes.bind(null, slug),
+    save ?? saveClientNotes.bind(null, slug ?? ""),
     undefined,
   );
 
@@ -29,7 +39,7 @@ export function NotesCard({ slug, notes }: { slug: string; notes: string }) {
         <h2 className="flex items-center gap-2 font-semibold">
           <NotebookPen className="size-4 text-primary" /> Notes
         </h2>
-        <span className="text-xs text-muted-foreground">Only for you</span>
+        <span className="text-xs text-muted-foreground">{hint}</span>
       </div>
 
       <textarea

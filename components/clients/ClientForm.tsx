@@ -129,6 +129,7 @@ const slugify = (s: string) =>
     .slice(0, 40)
     .replace(/-+$/g, "");
 
+/** A copy of the object without these keys */
 const without = (errors: Record<string, string>, ...keys: string[]) =>
   Object.fromEntries(Object.entries(errors).filter(([k]) => !keys.includes(k)));
 
@@ -220,17 +221,23 @@ const FIELD_LABELS: Record<string, string> = {
  */
 export function ClientForm({
   client,
+  prefill,
 }: {
   client?: { slug: string; values: Values };
+  /** "Convert to client": a new client filled from an onboarding request */
+  prefill?: { requestId: string; values: Values };
 } = {}) {
   const editing = !!client;
   const [values, setValues] = useState<Values>(
-    () => client?.values ?? initialValues(),
+    () => client?.values ?? prefill?.values ?? initialValues(),
   );
-  // When editing, plan changes no longer overwrite the slug or the chosen features
+  // When editing, plan changes no longer overwrite the slug or the chosen features. From a
+  // request, the features come from their answers: a plan change keeps them too.
   const [slugEdited, setSlugEdited] = useState(editing);
-  const [featuresEdited, setFeaturesEdited] = useState(editing);
-  const [sameWhatsapp, setSameWhatsapp] = useState(!client?.values.whatsapp);
+  const [featuresEdited, setFeaturesEdited] = useState(editing || !!prefill);
+  const [sameWhatsapp, setSameWhatsapp] = useState(
+    !(client?.values.whatsapp || prefill?.values.whatsapp),
+  );
   const [showHosting, setShowHosting] = useState(
     !!(client?.values.vercelProject || client?.values.renderService),
   );
@@ -360,6 +367,9 @@ export function ClientForm({
       className="mt-8 grid grid-cols-[minmax(0,1fr)] items-start gap-6 pb-28 lg:grid-cols-[minmax(0,1fr)_320px] lg:pb-0 xl:grid-cols-[minmax(0,1fr)_340px]"
     >
       <input type="hidden" name="payload" value={payload} />
+      {prefill && (
+        <input type="hidden" name="fromRequest" value={prefill.requestId} />
+      )}
 
       <div className="space-y-6">
         {state?.message && (!state.errors || errorCount > 0) && (
