@@ -1,10 +1,16 @@
-import mongoose, { type Model, type Schema } from "mongoose";
+import mongoose, { Schema, type Model, type SchemaDefinition } from "mongoose";
 
-export function registerModel<T>(
-  name: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  schema: Schema<any>,
-): Model<T> {
+export function defineSchema<T>(
+  definition: Record<string, unknown>,
+  options?: Record<string, unknown>,
+): Schema<T> {
+  return new Schema<T>(
+    definition as unknown as SchemaDefinition<T>,
+    options as never,
+  );
+}
+
+export function registerModel<T>(name: string, schema: Schema<T>): Model<T> {
   const existing = mongoose.models[name] as Model<T> | undefined;
   if (existing) {
     if (process.env.NODE_ENV === "production" || existing.schema === schema)

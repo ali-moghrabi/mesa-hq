@@ -1,5 +1,5 @@
-import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { registerModel } from "./register";
+import type { Model, Types } from "mongoose";
+import { defineSchema, registerModel } from "./register";
 import {
   CURRENCIES,
   CYCLE_IDS,
@@ -9,9 +9,87 @@ import {
   RESTAURANT_TYPE_IDS,
   STAGE_IDS,
   STATUS_IDS,
+  type Currency,
+  type CycleId,
+  type FeatureId,
+  type PaymentMethodId,
+  type PlanId,
+  type RestaurantTypeId,
+  type StageId,
+  type StatusId,
 } from "../clients/options";
 
-const targetHealthSchema = new Schema(
+export interface TargetHealthDoc {
+  ok: boolean | null;
+  status: number;
+  ms: number;
+  error: string;
+  failures: number;
+  down: boolean;
+  since: Date | null;
+  checkedAt: Date | null;
+}
+
+export interface ClientHealthDoc {
+  website: TargetHealthDoc;
+  api: TargetHealthDoc;
+  sslExpiresAt: string;
+  sslError: string;
+  domainExpiresAt: string;
+  expiryCheckedAt: Date | null;
+  sslWarnedFor: string;
+  domainWarnedFor: string;
+  checkedAt: Date | null;
+}
+
+export interface ClientDoc {
+  _id: Types.ObjectId;
+  name: string;
+  slug: string;
+  type: RestaurantTypeId;
+  isDemo: boolean;
+  city: string;
+  country: string;
+  address: string;
+  contact: {
+    name: string;
+    role: string;
+    phone: string;
+    whatsapp: string;
+    email: string;
+  };
+  subscription: {
+    plan: PlanId;
+    cycle: CycleId;
+    currency: Currency;
+    monthlyPriceCents: number;
+    setupFeeCents: number;
+    founding: boolean;
+    setupPaid: boolean;
+    startDate: string;
+    billingDay: number;
+    status: StatusId;
+    trialEndsAt: string;
+    paymentMethod: PaymentMethodId;
+    nextBillingDate: string;
+  };
+  website: {
+    stage: StageId;
+    domain: string;
+    launchDate: string;
+    features: Record<FeatureId, boolean>;
+    vercelProject: string;
+    renderService: string;
+    apiUrl: string;
+  };
+  health: ClientHealthDoc;
+  notes: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const targetHealthSchema = defineSchema<TargetHealthDoc>(
   {
     ok: { type: Boolean, default: null },
     status: { type: Number, default: 0 },
@@ -25,7 +103,7 @@ const targetHealthSchema = new Schema(
   { _id: false },
 );
 
-const healthSchema = new Schema(
+const healthSchema = defineSchema<ClientHealthDoc>(
   {
     website: { type: targetHealthSchema, default: () => ({}) },
     api: { type: targetHealthSchema, default: () => ({}) },
@@ -40,7 +118,7 @@ const healthSchema = new Schema(
   { _id: false },
 );
 
-const clientSchema = new Schema(
+const clientSchema = defineSchema<ClientDoc>(
   {
     name: { type: String, required: true, trim: true },
     slug: {
@@ -109,11 +187,4 @@ const clientSchema = new Schema(
   { timestamps: true, collection: "clients" },
 );
 
-export type ClientDoc = InferSchemaType<typeof clientSchema> & {
-  _id: mongoose.Types.ObjectId;
-};
-
-export const Client: Model<ClientDoc> = registerModel<ClientDoc>(
-  "Client",
-  clientSchema,
-);
+export const Client: Model<ClientDoc> = registerModel("Client", clientSchema);

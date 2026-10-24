@@ -1,8 +1,21 @@
-import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { registerModel } from "./register";
-import { ROLES } from "../auth/roles";
+import type { Model, Types } from "mongoose";
+import { ROLES, type Role } from "../auth/roles";
+import { defineSchema, registerModel } from "./register";
 
-const adminSchema = new Schema(
+export interface AdminDoc {
+  _id: Types.ObjectId;
+  email: string;
+  name: string;
+  passwordHash: string;
+  role: Role;
+  active: boolean;
+  tokenVersion: number;
+  lastSignInAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const adminSchema = defineSchema<AdminDoc>(
   {
     email: {
       type: String,
@@ -21,11 +34,4 @@ const adminSchema = new Schema(
   { timestamps: true, collection: "admins" },
 );
 
-export type AdminDoc = InferSchemaType<typeof adminSchema> & {
-  _id: mongoose.Types.ObjectId;
-};
-
-export const Admin: Model<AdminDoc> = registerModel<AdminDoc>(
-  "Admin",
-  adminSchema,
-);
+export const Admin: Model<AdminDoc> = registerModel("Admin", adminSchema);
