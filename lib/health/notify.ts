@@ -1,7 +1,40 @@
 import { createTransport, type Transporter } from "nodemailer";
 
 export type Channel = "whatsapp" | "email";
-export type ChannelResult = { channel: Channel; sent: boolean; error?: string };
+export type ChannelResult = {
+  channel: Channel;
+  sent: boolean;
+  error?: string;
+  to?: string;
+};
+
+type Recipient = { phone: string; apiKey: string };
+
+function whatsappRecipients(): Recipient[] {
+  const list = (process.env.CALLMEBOT_RECIPIENTS ?? "")
+    .split(",")
+    .map((pair) => pair.trim())
+    .filter(Boolean)
+    .map((pair) => {
+      const i = pair.lastIndexOf(":");
+      return i > 0
+        ? { phone: pair.slice(0, i).trim(), apiKey: pair.slice(i + 1).trim() }
+        : null;
+    })
+    .filter((r): r is Recipient => !!r && !!r.phone && !!r.apiKey);
+  const single = process.env.CALLMEBOT_PHONE?.trim();
+  const singleKey = process.env.CALLMEBOT_API_KEY?.trim();
+  if (single && singleKey && !list.some((r) => sameNumber(r.phone, single)))
+    list.push({ phone: single, apiKey: singleKey });
+  return list;
+}
+
+const digits = (phone: string) => phone.replace(/\D/g, "").replace(/^00/, "");
+const sameNumber = (a: string, b: string) => digits(a) === digits(b);
+const masked = (phone: string) => {
+  const d = digits(phone);
+  return d.length > 6 ? `+${d.slice(0, 3)}…${d.slice(-3)}` : phone;
+};
 export type Alert = {
   title: string;
   lines: string[];
@@ -11,7 +44,7 @@ export type Alert = {
 
 export function channelsConfigured(): Record<Channel, boolean> {
   return {
-    whatsapp: !!(process.env.CALLMEBOT_PHONE && process.env.CALLMEBOT_API_KEY),
+    whatsapp: whatsappRecipients().length > 0,
     email: !!(process.env.SMTP_HOST && alertEmails().length),
   };
 }
@@ -31,7 +64,8 @@ const hqLink = (path?: string) => {
 export async function sendAlert(alert: Alert): Promise<ChannelResult[]> {
   const configured = channelsConfigured();
   const jobs: Promise<ChannelResult>[] = [];
-  if (configured.whatsapp) jobs.push(sendWhatsApp(alert));
+  if (configured.whatsapp)
+    jobs.push(...whatsappRecipients().map((to) => sendWhatsApp(alert, to)));
   if (configured.email) jobs.push(sendEmail(alert));
   if (!jobs.length)
     console.warn(
@@ -40,7 +74,10 @@ export async function sendAlert(alert: Alert): Promise<ChannelResult[]> {
   return Promise.all(jobs);
 }
 
-async function sendWhatsApp(alert: Alert): Promise<ChannelResult> {
+async function sendWhatsApp(
+  alert: Alert,
+  to: Recipient,
+): Promise<ChannelResult> {
   const link = hqLink(alert.path);
   const text = [
     `${EMOJI[alert.tone]} *${alert.title}*`,
@@ -48,10 +85,8 @@ async function sendWhatsApp(alert: Alert): Promise<ChannelResult> {
     ...(link ? [link] : []),
   ].join("\n");
   const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(
-    process.env.CALLMEBOT_PHONE ?? "",
-  )}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(
-    process.env.CALLMEBOT_API_KEY ?? "",
-  )}`;
+    to.phone,
+  )}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(to.apiKey)}`;
   try {
     const response = await fetch(url, {
       cache: "no-store",
@@ -64,11 +99,18 @@ async function sendWhatsApp(alert: Alert): Promise<ChannelResult> {
           ? "CallMeBot refused it: check the phone number and API key"
           : `CallMeBot answered HTTP ${response.status}`,
       );
-    return { channel: "whatsapp", sent: true };
+    return { channel: "whatsapp", sent: true, to: masked(to.phone) };
   } catch (error) {
     const message = (error as Error).message;
-    console.error(`[health] WhatsApp alert failed: ${message}`);
-    return { channel: "whatsapp", sent: false, error: message };
+    console.error(
+      `[health] WhatsApp alert to ${masked(to.phone)} failed: ${message}`,
+    );
+    return {
+      channel: "whatsapp",
+      sent: false,
+      error: message,
+      to: masked(to.phone),
+    };
   }
 }
 

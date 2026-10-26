@@ -38,7 +38,7 @@ async function round() {
       );
       for (const a of r.alerts)
         console.log(
-          `     ↳ ${a.channel} alert ${a.sent ? "sent" : `failed: ${a.error}`}`,
+          `     ↳ ${a.channel}${a.to ? ` ${a.to}` : ""} alert ${a.sent ? "sent" : `failed: ${a.error}`}`,
         );
     }
     if (!summary.checked)

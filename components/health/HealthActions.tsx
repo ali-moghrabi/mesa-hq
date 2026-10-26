@@ -96,7 +96,7 @@ export function TestAlertButton() {
           )}
           {state.results?.map((r) => (
             <span
-              key={r.channel}
+              key={`${r.channel}-${r.to ?? ""}`}
               title={r.error}
               className={`inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
                 r.sent
@@ -110,7 +110,9 @@ export function TestAlertButton() {
                 <X className="size-3.5" />
               )}
               <span className="truncate">
-                {r.channel === "whatsapp" ? "WhatsApp" : "Email"}{" "}
+                {r.channel === "whatsapp"
+                  ? `WhatsApp${r.to ? ` ${r.to}` : ""}`
+                  : "Email"}{" "}
                 {r.sent ? "sent" : `failed: ${r.error}`}
               </span>
             </span>
