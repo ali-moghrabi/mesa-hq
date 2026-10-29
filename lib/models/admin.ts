@@ -11,6 +11,18 @@ export interface AdminDoc {
   active: boolean;
   tokenVersion: number;
   lastSignInAt?: Date;
+  mfaEnabled: boolean;
+  mfaEnabledAt?: Date;
+  mfaSecret?: string;
+  mfaLastStep?: number;
+  mfaRecoveryCodes?: string[];
+  mfaFailures?: number;
+  mfaLockedUntil?: Date;
+  challengeHash?: string;
+  challengePurpose?: "verify" | "setup";
+  challengeExpiresAt?: Date;
+  challengeAttempts?: number;
+  challengeSecret?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +42,22 @@ const adminSchema = defineSchema<AdminDoc>(
     active: { type: Boolean, default: true },
     tokenVersion: { type: Number, default: 0 },
     lastSignInAt: { type: Date },
+    mfaEnabled: { type: Boolean, default: false },
+    mfaEnabledAt: { type: Date },
+    mfaSecret: { type: String, select: false },
+    mfaLastStep: { type: Number, select: false },
+    mfaRecoveryCodes: { type: [String], select: false, default: undefined },
+    mfaFailures: { type: Number, select: false },
+    mfaLockedUntil: { type: Date, select: false },
+    challengeHash: { type: String, select: false },
+    challengePurpose: {
+      type: String,
+      enum: ["verify", "setup"],
+      select: false,
+    },
+    challengeExpiresAt: { type: Date, select: false },
+    challengeAttempts: { type: Number, select: false },
+    challengeSecret: { type: String, select: false },
   },
   { timestamps: true, collection: "admins" },
 );

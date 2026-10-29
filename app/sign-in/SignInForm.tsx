@@ -83,11 +83,11 @@ export function SignInForm({ next }: { next?: string }) {
       >
         {pending ? (
           <>
-            <Loader2 className="size-4.5 animate-spin" /> Signing in…
+            <Loader2 className="size-4.5 animate-spin" /> Checking…
           </>
         ) : (
           <>
-            Sign in{" "}
+            Continue{" "}
             <ArrowRight className="size-4.5 transition-transform group-hover:translate-x-0.5" />
           </>
         )}

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { readToken, SESSION_COOKIE } from "@/lib/auth/token";
+import { readToken, secureCookies, SESSION_COOKIE } from "@/lib/auth/token";
 
 const PUBLIC_PATHS = ["/sign-in", "/api/cron", "/api/onboarding"];
 
@@ -18,7 +18,11 @@ export async function proxy(request: NextRequest) {
     pathname === "/" ? "" : `?next=${encodeURIComponent(pathname + search)}`;
   const response = NextResponse.redirect(url);
   if (request.cookies.has(SESSION_COOKIE))
-    response.cookies.delete(SESSION_COOKIE);
+    response.cookies.delete({
+      name: SESSION_COOKIE,
+      path: "/",
+      secure: secureCookies(),
+    });
   return response;
 }
 

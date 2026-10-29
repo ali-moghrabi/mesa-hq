@@ -1,9 +1,13 @@
 import { SignJWT, jwtVerify } from "jose";
 import { isRole, type Role } from "./roles";
 
-export const SESSION_COOKIE = "hq_session";
-export const SESSION_DAYS = 7;
-export const SESSION_SECONDS = SESSION_DAYS * 24 * 60 * 60;
+export const secureCookies = () => process.env.NODE_ENV === "production";
+
+export const SESSION_COOKIE = secureCookies()
+  ? "__Host-hq_session"
+  : "hq_session";
+export const SESSION_HOURS = 12;
+export const SESSION_SECONDS = SESSION_HOURS * 60 * 60;
 
 const ISSUER = "mesa-hq";
 const AUDIENCE = "mesa-hq";
@@ -24,7 +28,7 @@ export function createToken(claims: SessionClaims): Promise<string> {
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_DAYS}d`)
+    .setExpirationTime(`${SESSION_HOURS}h`)
     .sign(secret());
 }
 

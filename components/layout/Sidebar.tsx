@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Inbox, LayoutGrid, LogOut, Store } from "lucide-react";
+import {
+  Activity,
+  Inbox,
+  LayoutGrid,
+  LogOut,
+  ShieldCheck,
+  Store,
+} from "lucide-react";
 import { signOut } from "@/lib/auth/actions";
 
 const NAV = [
@@ -10,6 +17,7 @@ const NAV = [
   { href: "/clients", label: "Clients", icon: Store },
   { href: "/onboarding", label: "Onboarding", icon: Inbox },
   { href: "/health", label: "Health", icon: Activity },
+  { href: "/security", label: "Security", icon: ShieldCheck },
 ] as const;
 
 function useActive() {
@@ -107,7 +115,6 @@ export function Sidebar({
         </div>
       </aside>
 
-      {/* Small screens */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur lg:hidden">
         <div className="flex h-14 items-center justify-between px-4">
           <Logo />

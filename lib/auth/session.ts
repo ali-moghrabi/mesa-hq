@@ -8,6 +8,7 @@ import type { Role } from "./roles";
 import {
   createToken,
   readToken,
+  secureCookies,
   SESSION_COOKIE,
   SESSION_SECONDS,
 } from "./token";
@@ -25,12 +26,14 @@ export const getSession = cache(async (): Promise<Session | null> => {
     role: 1,
     active: 1,
     tokenVersion: 1,
+    mfaEnabled: 1,
   })
     .lean()
     .catch(() => null);
   if (
     !admin ||
     !admin.active ||
+    !admin.mfaEnabled ||
     admin.tokenVersion !== claims.ver ||
     admin.role !== claims.role
   )
@@ -64,7 +67,7 @@ export async function startSession(admin: {
   });
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies(),
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_SECONDS,
@@ -72,5 +75,9 @@ export async function startSession(admin: {
 }
 
 export async function endSession() {
-  (await cookies()).delete({ name: SESSION_COOKIE, path: "/" });
+  (await cookies()).delete({
+    name: SESSION_COOKIE,
+    path: "/",
+    secure: secureCookies(),
+  });
 }
