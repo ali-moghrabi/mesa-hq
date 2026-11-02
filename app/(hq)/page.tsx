@@ -15,12 +15,14 @@ const SECTIONS = [
   {
     icon: CreditCard,
     title: "Subscriptions",
-    text: "Monthly price, billing day and status.",
+    text: "Automatic card billing with Stripe, pause and cancel.",
+    href: "/billing",
   },
   {
     icon: Wallet,
     title: "Payments",
-    text: "What's paid, what's due, and reminders.",
+    text: "What's paid, what's due, and what failed.",
+    href: "/billing",
   },
 ] as const;
 
@@ -35,7 +37,7 @@ export default async function OverviewPage() {
         Welcome, {first}
       </h1>
       <p className="mt-1.5 text-muted-foreground">
-        Start with your clients. Subscriptions and payments come next.
+        Your clients, their subscriptions and every payment.
       </p>
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-3">
         {SECTIONS.map((section) => {

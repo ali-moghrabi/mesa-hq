@@ -1,6 +1,7 @@
 import type { Model, Types } from "mongoose";
 import { defineSchema, registerModel } from "./register";
 import {
+  BILLING_MODE_IDS,
   CURRENCIES,
   CYCLE_IDS,
   FEATURES,
@@ -9,6 +10,7 @@ import {
   RESTAURANT_TYPE_IDS,
   STAGE_IDS,
   STATUS_IDS,
+  type BillingModeId,
   type Currency,
   type CycleId,
   type FeatureId,
@@ -41,6 +43,20 @@ export interface ClientHealthDoc {
   domainWarnedFor: string;
   checkedAt: Date | null;
 }
+export interface StripeBillingDoc {
+  customerId: string;
+  subscriptionId: string;
+  status: string;
+  currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
+  pausedAt: Date | null;
+  resumesAt: Date | null;
+  card: { brand: string; last4: string; expMonth: number; expYear: number };
+  checkoutUrl: string;
+  checkoutExpiresAt: Date | null;
+  lastPaymentError: string;
+  syncedAt: Date | null;
+}
 
 export interface ClientDoc {
   _id: Types.ObjectId;
@@ -72,6 +88,8 @@ export interface ClientDoc {
     trialEndsAt: string;
     paymentMethod: PaymentMethodId;
     nextBillingDate: string;
+    billingMode: BillingModeId;
+    stripe: StripeBillingDoc;
   };
   website: {
     stage: StageId;
@@ -114,6 +132,29 @@ const healthSchema = defineSchema<ClientHealthDoc>(
     sslWarnedFor: { type: String, default: "" },
     domainWarnedFor: { type: String, default: "" },
     checkedAt: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
+const stripeSchema = defineSchema<StripeBillingDoc>(
+  {
+    customerId: { type: String, default: "" },
+    subscriptionId: { type: String, default: "" },
+    status: { type: String, default: "" },
+    currentPeriodEnd: { type: Date, default: null },
+    cancelAtPeriodEnd: { type: Boolean, default: false },
+    pausedAt: { type: Date, default: null },
+    resumesAt: { type: Date, default: null },
+    card: {
+      brand: { type: String, default: "" },
+      last4: { type: String, default: "" },
+      expMonth: { type: Number, default: 0 },
+      expYear: { type: Number, default: 0 },
+    },
+    checkoutUrl: { type: String, default: "" },
+    checkoutExpiresAt: { type: Date, default: null },
+    lastPaymentError: { type: String, default: "" },
+    syncedAt: { type: Date, default: null },
   },
   { _id: false },
 );
@@ -165,6 +206,12 @@ const clientSchema = defineSchema<ClientDoc>(
         default: "cash",
       },
       nextBillingDate: { type: String, default: "", index: true },
+      billingMode: {
+        type: String,
+        enum: BILLING_MODE_IDS,
+        default: "manual",
+      },
+      stripe: { type: stripeSchema, default: () => ({}) },
     },
 
     website: {
@@ -185,6 +232,21 @@ const clientSchema = defineSchema<ClientDoc>(
     createdBy: { type: String, default: "" },
   },
   { timestamps: true, collection: "clients" },
+);
+
+clientSchema.index(
+  { "subscription.stripe.customerId": 1 },
+  {
+    partialFilterExpression: { "subscription.stripe.customerId": { $gt: "" } },
+  },
+);
+clientSchema.index(
+  { "subscription.stripe.subscriptionId": 1 },
+  {
+    partialFilterExpression: {
+      "subscription.stripe.subscriptionId": { $gt: "" },
+    },
+  },
 );
 
 export const Client: Model<ClientDoc> = registerModel("Client", clientSchema);

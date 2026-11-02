@@ -7,6 +7,9 @@ import { todayIn } from "@/lib/clients/list";
 import { getClient } from "@/lib/clients/queries";
 import { getClientHealth } from "@/lib/health/queries";
 import { SLOW_MS } from "@/lib/health/state";
+import { BillingCard } from "@/components/billing/BillingCard";
+import { clientPayments } from "@/lib/billing/queries";
+import { stripeConfigured } from "@/lib/billing/stripe";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -25,7 +28,10 @@ export default async function ClientPage({ params, searchParams }: Props) {
   const client = await getClient(slug);
   if (!client) notFound();
 
-  const health = await getClientHealth(client.id, SLOW_MS);
+  const [health, payments] = await Promise.all([
+    getClientHealth(client.id, SLOW_MS),
+    client.isDemo ? null : clientPayments(client.id),
+  ]);
   const today = todayIn();
 
   return (
@@ -33,6 +39,17 @@ export default async function ClientPage({ params, searchParams }: Props) {
       client={client}
       today={today}
       saved={query.saved === "1"}
+      billing={
+        payments && (
+          <BillingCard
+            client={client}
+            payments={payments.rows}
+            totals={payments.totals}
+            today={today}
+            stripeReady={stripeConfigured()}
+          />
+        )
+      }
       health={
         health && (
           <HealthCard

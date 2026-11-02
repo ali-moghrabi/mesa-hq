@@ -2,7 +2,7 @@ import "server-only";
 import type { PipelineStage } from "mongoose";
 import { connectDb } from "../db";
 import { Client } from "../models/client";
-import { FEATURES, YEARLY_MONTHS_PAID } from "./options";
+import { CYCLES, FEATURES } from "./options";
 import { overallState, toClientHealth } from "../health/state";
 import type { ClientDetail } from "./detail";
 import type { ClientFormValues } from "./schema";
@@ -175,7 +175,12 @@ export async function listClients(filters: ListFilters): Promise<{
                       $cond: [
                         {
                           $and: [
-                            { $eq: ["$subscription.status", "active"] },
+                            {
+                              $in: [
+                                "$subscription.status",
+                                ["active", "past_due"],
+                              ],
+                            },
                             { $gt: ["$subscription.nextBillingDate", ""] },
                             { $lt: ["$subscription.nextBillingDate", today] },
                           ],
@@ -209,26 +214,28 @@ export async function listClients(filters: ListFilters): Promise<{
               },
             ],
             mrr: [
-              { $match: { "subscription.status": "active" } },
+              {
+                $match: {
+                  "subscription.status": { $in: ["active", "past_due"] },
+                },
+              },
               {
                 $group: {
                   _id: "$subscription.currency",
+                  // what each cycle is worth per month (yearly is prepaid at a discount)
                   cents: {
                     $sum: {
-                      $cond: [
-                        { $eq: ["$subscription.cycle", "yearly"] },
-                        {
-                          $divide: [
-                            {
-                              $multiply: [
-                                "$subscription.monthlyPriceCents",
-                                YEARLY_MONTHS_PAID,
-                              ],
-                            },
-                            12,
-                          ],
-                        },
+                      $multiply: [
                         "$subscription.monthlyPriceCents",
+                        {
+                          $switch: {
+                            branches: CYCLES.map((c) => ({
+                              case: { $eq: ["$subscription.cycle", c.id] },
+                              then: c.paidMonths / c.months,
+                            })),
+                            default: 1,
+                          },
+                        },
                       ],
                     },
                   },
@@ -339,6 +346,26 @@ type StoredClient = {
     trialEndsAt?: string;
     paymentMethod?: string;
     nextBillingDate?: string;
+    billingMode?: string;
+    stripe?: {
+      customerId?: string;
+      subscriptionId?: string;
+      status?: string;
+      currentPeriodEnd?: Date | null;
+      cancelAtPeriodEnd?: boolean;
+      pausedAt?: Date | null;
+      resumesAt?: Date | null;
+      card?: {
+        brand?: string;
+        last4?: string;
+        expMonth?: number;
+        expYear?: number;
+      };
+      checkoutUrl?: string;
+      checkoutExpiresAt?: Date | null;
+      lastPaymentError?: string;
+      syncedAt?: Date | null;
+    };
   };
   website?: {
     stage?: string;
@@ -370,6 +397,9 @@ export async function getClient(slug: string): Promise<ClientDetail | null> {
   const sub = c.subscription ?? {};
   const web = c.website ?? {};
   const features = web.features ?? {};
+  const st = sub.stripe ?? {};
+  const iso = (d: Date | null | undefined) =>
+    d ? new Date(d).toISOString() : "";
 
   return {
     id: String(c._id),
@@ -399,6 +429,32 @@ export async function getClient(slug: string): Promise<ClientDetail | null> {
     trialEndsAt: sub.trialEndsAt ?? "",
     paymentMethod: (sub.paymentMethod ?? "cash") as D["paymentMethod"],
     nextBillingDate: sub.nextBillingDate ?? "",
+    billingMode: sub.billingMode === "stripe" ? "stripe" : "manual",
+    stripe: {
+      customerId: st.customerId ?? "",
+      subscriptionId: st.subscriptionId ?? "",
+      status: st.status ?? "",
+      currentPeriodEnd: iso(st.currentPeriodEnd),
+      cancelAtPeriodEnd: !!st.cancelAtPeriodEnd,
+      paused: !!st.pausedAt,
+      resumesAt: iso(st.resumesAt),
+      card: {
+        brand: st.card?.brand ?? "",
+        last4: st.card?.last4 ?? "",
+        expMonth: st.card?.expMonth ?? 0,
+        expYear: st.card?.expYear ?? 0,
+      },
+      // an expired link is no use: show it only while it works
+      checkoutUrl:
+        st.checkoutUrl &&
+        st.checkoutExpiresAt &&
+        new Date(st.checkoutExpiresAt).getTime() > Date.now()
+          ? st.checkoutUrl
+          : "",
+      checkoutExpiresAt: iso(st.checkoutExpiresAt),
+      lastPaymentError: st.lastPaymentError ?? "",
+      syncedAt: iso(st.syncedAt),
+    },
     stage: (web.stage ?? "onboarding") as D["stage"],
     domain: web.domain ?? "",
     launchDate: web.launchDate ?? "",

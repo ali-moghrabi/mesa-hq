@@ -40,6 +40,7 @@ export type Alert = {
   lines: string[];
   path?: string;
   tone: "down" | "up" | "warning" | "info";
+  label?: string;
 };
 
 export function channelsConfigured(): Record<Channel, boolean> {
@@ -157,7 +158,7 @@ async function sendEmail(alert: Alert): Promise<ChannelResult> {
 <div style="max-width:520px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #eadfd6">
 <div style="height:4px;background:${COLOR[alert.tone]}"></div>
 <div style="padding:24px 26px">
-<p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a7f77">MESA HQ · Health</p>
+<p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a7f77">MESA HQ · ${escapeHtml(alert.label ?? "Health")}</p>
 <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3">${escapeHtml(alert.title)}</h1>
 ${alert.lines.map((l) => `<p style="margin:0 0 8px;font-size:15px;line-height:1.5">${escapeHtml(l)}</p>`).join("")}
 ${link ? `<p style="margin:20px 0 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#6474e0;color:#fff;text-decoration:none;font-weight:600;padding:10px 16px;border-radius:9px">Open in HQ</a></p>` : ""}

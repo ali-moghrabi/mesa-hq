@@ -25,9 +25,10 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { FEATURES, STAGES, YEARLY_MONTHS_PAID } from "@/lib/clients/options";
+import { cycleOf, FEATURES, STAGES } from "@/lib/clients/options";
 import {
   billed,
+  billedLabel,
   dateTime,
   dayOf,
   daysBetween,
@@ -37,6 +38,7 @@ import {
   mapsUrl,
   methodLabel,
   money,
+  perMonth,
   planName,
   relativeDays,
   siteUrl,
@@ -63,6 +65,10 @@ const STATUS_TONE: Record<
     dot: "bg-accent",
     pill: "border-accent/25 bg-accent/10 text-accent",
   },
+  past_due: {
+    dot: "bg-destructive",
+    pill: "border-destructive/30 bg-destructive/12 text-destructive",
+  },
   paused: {
     dot: "bg-muted-foreground",
     pill: "border-border-strong bg-muted text-muted-foreground",
@@ -78,18 +84,24 @@ export function ClientDetailView({
   today,
   saved,
   health,
+  billing,
 }: {
   client: ClientDetail;
   today: string;
   saved?: boolean;
   health?: ReactNode;
+  billing?: ReactNode;
 }) {
-  const billsNow = c.status === "active" || c.status === "trial";
+  const billsNow =
+    c.status === "active" || c.status === "trial" || c.status === "past_due";
+  const cycle = cycleOf(c.cycle);
   const dueIn =
     billsNow && c.nextBillingDate
       ? daysBetween(today, c.nextBillingDate)
       : null;
-  const overdue = c.status === "active" && dueIn !== null && dueIn < 0;
+  const overdue =
+    c.status === "past_due" ||
+    (c.status === "active" && dueIn !== null && dueIn < 0);
   const site = siteUrl(c.domain);
   const whatsapp = whatsappUrl(c.contact.whatsapp || c.contact.phone);
   const tone = STATUS_TONE[c.status];
@@ -234,18 +246,18 @@ export function ClientDetailView({
         <section className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat
             icon={<Wallet />}
-            label={c.cycle === "yearly" ? "Billed yearly" : "Billed monthly"}
+            label={billedLabel(c.cycle)}
             value={
               <>
                 {money(billed(c), c.currency)}
                 <span className="text-base font-normal text-muted-foreground">
-                  /{c.cycle === "yearly" ? "yr" : "mo"}
+                  /{cycle.short}
                 </span>
               </>
             }
             note={
-              c.cycle === "yearly"
-                ? `${money((c.monthlyPrice * YEARLY_MONTHS_PAID) / 12, c.currency)} a month · ${planName(c.plan)}`
+              cycle.months > 1
+                ? `${money(perMonth(c), c.currency)} a month · ${planName(c.plan)}`
                 : `${planName(c.plan)} plan`
             }
           />
@@ -267,13 +279,15 @@ export function ClientDetailView({
                 ? `Not billed while ${statusLabel(c.status).toLowerCase()}`
                 : dueIn === null
                   ? "No date set"
-                  : overdue
-                    ? `Overdue by ${-dueIn} day${dueIn === -1 ? "" : "s"}`
-                    : c.status === "trial"
-                      ? `After the trial · ${relativeDays(dueIn)}`
-                      : relativeDays(dueIn).replace(/^./, (ch) =>
-                          ch.toUpperCase(),
-                        )
+                  : c.status === "past_due"
+                    ? "The last card charge failed"
+                    : overdue
+                      ? `Overdue by ${-dueIn} day${dueIn === -1 ? "" : "s"}`
+                      : c.status === "trial"
+                        ? `After the trial · ${relativeDays(dueIn)}`
+                        : relativeDays(dueIn).replace(/^./, (ch) =>
+                            ch.toUpperCase(),
+                          )
             }
           />
           <Stat
@@ -332,17 +346,30 @@ export function ClientDetailView({
                   <Item label="Price">
                     {money(c.monthlyPrice, c.currency)}
                     <span className="text-muted-foreground"> / month</span>
-                    {c.cycle === "yearly" && (
+                    {c.cycle === "yearly" ? (
                       <span className="block text-xs text-muted-foreground">
                         Prepaid yearly: {money(billed(c), c.currency)} for 12
                         months
                       </span>
+                    ) : (
+                      cycle.months > 1 && (
+                        <span className="block text-xs text-muted-foreground">
+                          {money(billed(c), c.currency)} every {cycle.every}
+                        </span>
+                      )
                     )}
                   </Item>
                   <Item label="Billing">
-                    {c.cycle === "yearly"
-                      ? "Once a year"
-                      : `Monthly, on the ${ordinal(c.billingDay)}`}
+                    {c.cycle === "monthly"
+                      ? `Monthly, on the ${ordinal(c.billingDay)}`
+                      : c.cycle === "yearly"
+                        ? "Once a year"
+                        : `Every ${cycle.every}`}
+                    {c.billingMode === "stripe" && c.stripe?.subscriptionId && (
+                      <span className="block text-xs text-primary">
+                        Charged automatically by Stripe
+                      </span>
+                    )}
                   </Item>
                   <Item label="Usually pays by">
                     {methodLabel(c.paymentMethod)}
@@ -377,12 +404,8 @@ export function ClientDetailView({
                   </Item>
                   <Item label="Currency">{c.currency}</Item>
                 </dl>
-                <p className="mt-6 flex items-start gap-2 rounded-xl border border-dashed border-border-strong px-3.5 py-3 text-xs text-muted-foreground">
-                  <History className="mt-px size-3.5 shrink-0" />
-                  Payment history will show here once payments can be recorded
-                  in HQ.
-                </p>
               </Card>
+              {billing}
             </>
           )}
 

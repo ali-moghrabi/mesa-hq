@@ -15,12 +15,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import {
-  PLANS,
-  STAGES,
-  STATUSES,
-  YEARLY_MONTHS_PAID,
-} from "@/lib/clients/options";
+import { PLANS, STAGES, STATUSES, cycleOf } from "@/lib/clients/options";
 import {
   hrefWith,
   todayIn,
@@ -43,6 +38,10 @@ const STATUS_STYLE: Record<ClientRow["status"], { dot: string; pill: string }> =
     trial: {
       dot: "bg-accent",
       pill: "border-accent/25 bg-accent/10 text-accent",
+    },
+    past_due: {
+      dot: "bg-destructive",
+      pill: "border-destructive/30 bg-destructive/12 text-destructive",
     },
     paused: {
       dot: "bg-muted-foreground",
@@ -207,7 +206,7 @@ export function ClientsView({
                       .slice(1)
                       .map((m) => `+ ${money(m.amount, m.currency)}`)
                       .join(" ")
-                  : `Active clients, yearly ÷ 12`
+                  : `Active clients, per month`
               }
             />
             <Stat
@@ -361,15 +360,17 @@ function Row({
   today: string;
 }) {
   const style = STATUS_STYLE[c.status];
-  const billed =
-    c.cycle === "yearly" ? c.monthly * YEARLY_MONTHS_PAID : c.monthly;
+  const cycle = cycleOf(c.cycle);
+  const billed = c.monthly * cycle.paidMonths;
   const overdue =
-    c.status === "active" && !!c.nextBillingDate && c.nextBillingDate < today;
+    c.status === "past_due" ||
+    (c.status === "active" && !!c.nextBillingDate && c.nextBillingDate < today);
   const dueSoon =
     !overdue &&
     !!c.nextBillingDate &&
     c.nextBillingDate <= todayIn(undefined, 7);
-  const billing = c.status === "active" || c.status === "trial";
+  const billing =
+    c.status === "active" || c.status === "trial" || c.status === "past_due";
   const wa = whatsappLink(c.whatsapp);
   const initials = c.name
     .split(/\s+/)
@@ -457,9 +458,7 @@ function Row({
         </Link>
         <p className="tabular-nums md:mt-1">
           {money(billed, c.currency)}
-          <span className="text-muted-foreground">
-            /{c.cycle === "yearly" ? "yr" : "mo"}
-          </span>
+          <span className="text-muted-foreground">/{cycle.short}</span>
         </p>
       </div>
 
@@ -474,13 +473,15 @@ function Row({
             {overdue && <AlertTriangle className="size-3.5" />}
             {shortDate(c.nextBillingDate)}
             <span className="font-normal text-muted-foreground">
-              {overdue
-                ? "· overdue"
-                : dueSoon
-                  ? "· this week"
-                  : c.status === "trial"
-                    ? "· after trial"
-                    : ""}
+              {c.status === "past_due"
+                ? "· payment failed"
+                : overdue
+                  ? "· overdue"
+                  : dueSoon
+                    ? "· this week"
+                    : c.status === "trial"
+                      ? "· after trial"
+                      : ""}
             </span>
           </p>
         ) : (

@@ -36,10 +36,52 @@ export const YEARLY_MONTHS_PAID = 10;
 export const FOUNDING_DISCOUNT = 0.4;
 
 export const CYCLES = [
-  { id: "monthly", label: "Monthly" },
-  { id: "yearly", label: "Yearly" },
+  {
+    id: "monthly",
+    label: "Monthly",
+    months: 1,
+    paidMonths: 1,
+    short: "mo",
+    every: "month",
+    interval: "month",
+    intervalCount: 1,
+  },
+  {
+    id: "quarterly",
+    label: "3 months",
+    months: 3,
+    paidMonths: 3,
+    short: "3 mo",
+    every: "3 months",
+    interval: "month",
+    intervalCount: 3,
+  },
+  {
+    id: "semiannual",
+    label: "6 months",
+    months: 6,
+    paidMonths: 6,
+    short: "6 mo",
+    every: "6 months",
+    interval: "month",
+    intervalCount: 6,
+  },
+  {
+    id: "yearly",
+    label: "Yearly",
+    months: 12,
+    paidMonths: YEARLY_MONTHS_PAID,
+    short: "yr",
+    every: "year",
+    interval: "year",
+    intervalCount: 1,
+  },
 ] as const;
 export type CycleId = (typeof CYCLES)[number]["id"];
+export type Cycle = (typeof CYCLES)[number];
+
+export const cycleOf = (id: string): Cycle =>
+  CYCLES.find((c) => c.id === id) ?? CYCLES[0];
 
 export const CURRENCIES = ["USD", "LBP"] as const;
 export type Currency = (typeof CURRENCIES)[number];
@@ -47,10 +89,27 @@ export type Currency = (typeof CURRENCIES)[number];
 export const STATUSES = [
   { id: "trial", label: "Trial", hint: "Free until the trial ends" },
   { id: "active", label: "Active", hint: "Billed every cycle" },
+  {
+    id: "past_due",
+    label: "Payment failed",
+    hint: "The last charge failed; Stripe retries it",
+  },
   { id: "paused", label: "Paused", hint: "Not billed for now" },
   { id: "cancelled", label: "Cancelled", hint: "No longer a client" },
 ] as const;
 export type StatusId = (typeof STATUSES)[number]["id"];
+
+export const BILLED_STATUSES: readonly StatusId[] = [
+  "active",
+  "trial",
+  "past_due",
+];
+
+export const BILLING_MODES = [
+  { id: "manual", label: "Manual" },
+  { id: "stripe", label: "Automatic (Stripe)" },
+] as const;
+export type BillingModeId = (typeof BILLING_MODES)[number]["id"];
 
 export const STAGES = [
   { id: "onboarding", label: "Onboarding" },
@@ -96,3 +155,4 @@ export const STAGE_IDS = ids(STAGES);
 export const PAYMENT_METHOD_IDS = ids(PAYMENT_METHODS);
 export const RESTAURANT_TYPE_IDS = ids(RESTAURANT_TYPES);
 export const CYCLE_IDS = ids(CYCLES);
+export const BILLING_MODE_IDS = ids(BILLING_MODES);

@@ -5,7 +5,8 @@ import {
   RESTAURANT_TYPES,
   STAGES,
   STATUSES,
-  YEARLY_MONTHS_PAID,
+  cycleOf,
+  type BillingModeId,
   type CycleId,
   type FeatureId,
   type PaymentMethodId,
@@ -43,6 +44,21 @@ export type ClientDetail = {
   trialEndsAt: string;
   paymentMethod: PaymentMethodId;
   nextBillingDate: string;
+  billingMode: BillingModeId;
+  stripe: {
+    customerId: string;
+    subscriptionId: string;
+    status: string;
+    currentPeriodEnd: string;
+    cancelAtPeriodEnd: boolean;
+    paused: boolean;
+    resumesAt: string;
+    card: { brand: string; last4: string; expMonth: number; expYear: number };
+    checkoutUrl: string;
+    checkoutExpiresAt: string;
+    lastPaymentError: string;
+    syncedAt: string;
+  };
   stage: StageId;
   domain: string;
   launchDate: string;
@@ -83,7 +99,21 @@ export function money(amount: number, currency: string) {
 }
 
 export const billed = (c: Pick<ClientDetail, "monthlyPrice" | "cycle">) =>
-  c.cycle === "yearly" ? c.monthlyPrice * YEARLY_MONTHS_PAID : c.monthlyPrice;
+  c.monthlyPrice * cycleOf(c.cycle).paidMonths;
+
+export const perMonth = (c: Pick<ClientDetail, "monthlyPrice" | "cycle">) => {
+  const cycle = cycleOf(c.cycle);
+  return (c.monthlyPrice * cycle.paidMonths) / cycle.months;
+};
+
+export const billedLabel = (cycle: string) => {
+  const c = cycleOf(cycle);
+  return c.months === 1
+    ? "Billed monthly"
+    : c.months === 12
+      ? "Billed yearly"
+      : `Billed every ${c.every}`;
+};
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const utc = (iso: string) => {

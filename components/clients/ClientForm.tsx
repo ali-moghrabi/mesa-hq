@@ -30,6 +30,7 @@ import {
 import {
   CURRENCIES,
   CYCLES,
+  cycleOf,
   FEATURES,
   FOUNDING_DISCOUNT,
   PAYMENT_METHODS,
@@ -649,10 +650,11 @@ export function ClientForm({
               label="Billing"
               name="cycle"
               error={errors.cycle}
+              className="sm:col-span-2"
               hint={
                 values.cycle === "yearly"
                   ? `Prepaid: they pay ${YEARLY_MONTHS_PAID} months and get 12.`
-                  : "Paid every month."
+                  : `Paid every ${cycleOf(values.cycle).every}.`
               }
             >
               <Segmented
@@ -673,9 +675,9 @@ export function ClientForm({
               name="monthlyPrice"
               error={errors.monthlyPrice}
               hint={
-                values.cycle === "yearly"
-                  ? `Billed ${formatMoney(billedAmount(toNumber(values.monthlyPrice), "yearly"), values.currency)} a year`
-                  : undefined
+                values.cycle === "monthly"
+                  ? undefined
+                  : `Billed ${formatMoney(billedAmount(toNumber(values.monthlyPrice), values.cycle), values.currency)} every ${cycleOf(values.cycle).every}`
               }
             >
               <MoneyInput
@@ -775,7 +777,9 @@ export function ClientForm({
               </Field>
             )}
             {editing &&
-              (values.status === "active" || values.status === "trial") && (
+              (values.status === "active" ||
+                values.status === "trial" ||
+                values.status === "past_due") && (
                 <Field
                   label="Next payment"
                   name="nextBillingDate"
@@ -1020,7 +1024,10 @@ function Summary({
         : "",
     [first, day, values.cycle],
   );
-  const billsNow = values.status === "active" || values.status === "trial";
+  const billsNow =
+    values.status === "active" ||
+    values.status === "trial" ||
+    values.status === "past_due";
   // Editing shows the date that will be saved, not the first one
   const upcoming = editing ? nextBillingOnEdit(values, today()) : first;
   const upcomingLabel = editing ? "Next payment" : "First payment";
@@ -1053,21 +1060,26 @@ function Summary({
             </Row>
             <Row
               label={
-                values.cycle === "yearly" ? "Billed yearly" : "Billed monthly"
+                values.cycle === "monthly"
+                  ? "Billed monthly"
+                  : values.cycle === "yearly"
+                    ? "Billed yearly"
+                    : `Billed every ${cycleOf(values.cycle).every}`
               }
             >
               <span className="font-semibold tabular-nums">
                 {formatMoney(billed, values.currency)}
               </span>
             </Row>
-            {values.cycle === "yearly" && Number.isFinite(monthly) && (
+            {values.cycle !== "monthly" && Number.isFinite(monthly) && (
               <Row label="Per month">
                 <span className="tabular-nums text-muted-foreground">
                   {formatMoney(
-                    monthlyValue(monthly, "yearly"),
+                    monthlyValue(monthly, values.cycle),
                     values.currency,
-                  )}{" "}
-                  (12 for {YEARLY_MONTHS_PAID})
+                  )}
+                  {values.cycle === "yearly" &&
+                    ` (12 for ${YEARLY_MONTHS_PAID})`}
                 </span>
               </Row>
             )}
@@ -1104,9 +1116,9 @@ function Summary({
                   {editing
                     ? "."
                     : second &&
-                      (values.cycle === "yearly" ? (
+                      (values.cycle !== "monthly" ? (
                         <>
-                          , then once a year (next{" "}
+                          , then every {cycleOf(values.cycle).every} (next{" "}
                           <span className="text-foreground">
                             {formatDate(second)}
                           </span>
@@ -1144,7 +1156,7 @@ function Summary({
             <p className="truncate text-sm font-semibold">
               {plan.name} · {formatMoney(billed, values.currency)}
               <span className="font-normal text-muted-foreground">
-                /{values.cycle === "yearly" ? "yr" : "mo"}
+                /{cycleOf(values.cycle).short}
               </span>
             </p>
             <p className="truncate text-xs text-muted-foreground">
@@ -1212,6 +1224,7 @@ function StatusDot({ status }: { status: Values["status"] }) {
   const color = {
     trial: "bg-accent",
     active: "bg-success",
+    past_due: "bg-destructive",
     paused: "bg-muted-foreground",
     cancelled: "bg-destructive",
   }[status];

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  CreditCard,
   Inbox,
   LayoutGrid,
   LogOut,
@@ -15,6 +16,7 @@ import { signOut } from "@/lib/auth/actions";
 const NAV = [
   { href: "/", label: "Overview", icon: LayoutGrid, exact: true },
   { href: "/clients", label: "Clients", icon: Store },
+  { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/onboarding", label: "Onboarding", icon: Inbox },
   { href: "/health", label: "Health", icon: Activity },
   { href: "/security", label: "Security", icon: ShieldCheck },
