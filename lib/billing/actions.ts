@@ -2,6 +2,7 @@
 
 import { isValidObjectId } from "mongoose";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { requireAdmin } from "../auth/session";
 import { connectDb } from "../db";
 import { Client, type ClientDoc } from "../models/client";
@@ -50,8 +51,19 @@ const failed = (error: unknown): BillingState => {
   return { message: "Something went wrong. Try again in a moment." };
 };
 
-const hqUrl = () =>
-  (process.env.HQ_URL ?? "").replace(/\/+$/, "") || "http://localhost:3100";
+async function hqUrl(): Promise<string> {
+  const set = (process.env.HQ_URL ?? "").trim().replace(/\/+$/, "");
+  if (set) return set;
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (host) {
+    const local = /^(localhost|127\.|\[::1\])/.test(host);
+    const proto = h.get("x-forwarded-proto") ?? (local ? "http" : "https");
+    return `${proto.split(",")[0].trim()}://${host.split(",")[0].trim()}`;
+  }
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  return vercel ? `https://${vercel}` : "http://localhost:3100";
+}
 
 function noonIn(day: string): number {
   const [y, m, d] = day.split("-").map(Number);
@@ -136,6 +148,7 @@ export async function createCardLink(slug: string): Promise<BillingState> {
       await stripe("POST", `/checkout/sessions/${old}/expire`).catch(() => {});
 
     const customer = await ensureCustomer(c);
+    const base = await hqUrl();
     const session = await stripe<StripeCheckoutSession>(
       "POST",
       "/checkout/sessions",
@@ -174,8 +187,8 @@ export async function createCardLink(slug: string): Promise<BillingState> {
               : `Your card is charged now, then every ${cycle.every}. You can ask us to pause or cancel at any time.`,
           },
         },
-        success_url: `${hqUrl()}/billing/done?ok=1`,
-        cancel_url: `${hqUrl()}/billing/done`,
+        success_url: `${base}/billing/done?ok=1`,
+        cancel_url: `${base}/billing/done`,
       },
     );
     if (!session.url)
@@ -208,6 +221,7 @@ export async function createCardUpdateLink(
   if (!c || !isAutomatic(c))
     return { message: "Automatic billing isn't on for this client." };
   try {
+    const base = await hqUrl();
     const session = await stripe<StripeCheckoutSession>(
       "POST",
       "/checkout/sessions",
@@ -221,8 +235,8 @@ export async function createCardUpdateLink(
           slug: c.slug,
           subscriptionId: c.subscription.stripe.subscriptionId,
         },
-        success_url: `${hqUrl()}/billing/done?ok=1`,
-        cancel_url: `${hqUrl()}/billing/done`,
+        success_url: `${base}/billing/done?ok=1`,
+        cancel_url: `${base}/billing/done`,
       },
     );
     if (!session.url)
@@ -378,6 +392,7 @@ export async function cancelBilling(
   }
 }
 
+/** Takes back a cancel-at-period-end before the period ends */
 export async function undoCancel(slug: string): Promise<BillingState> {
   await requireAdmin(["owner"]);
   const c = await load(slug);
@@ -466,7 +481,6 @@ export async function recordPayment(
       { _id: c._id },
       { $set: { "subscription.setupPaid": true } },
     );
-  // a manual client's next payment moves one cycle forward (automatic ones follow Stripe)
   else if (
     !isAutomatic(c) &&
     ["active", "trial", "past_due"].includes(sub.status)
@@ -491,7 +505,6 @@ export async function recordPayment(
   );
 }
 
-/** The quick "setup fee paid" switch */
 export async function setSetupPaid(
   slug: string,
   paid: boolean,
@@ -520,7 +533,6 @@ export async function setSetupPaid(
       note: "Setup fee",
       recordedBy: me.email,
     });
-  // switched off by mistake: the payment that switch added goes too
   if (!paid)
     await Payment.deleteMany({
       client: c._id,
